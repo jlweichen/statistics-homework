@@ -1,0 +1,193 @@
+---
+title: "Homework 2 Stat 587"
+author: "Jennifer Weichenrieder"
+date: "3/20/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+### Problem 1
+
+Our linear model can be represented as:
+$$ Y_i = \beta_0\ + \beta_1x_{1_i} + \beta_2x_{2i} +\epsilon_i$$
+$x_1$ is the family's income in thousands of dollars, and $x_2$ is the age of the current family vehicle in years.
+The possible values of $Y_i$ are 0 and 1. The expected value of $Y_i$ is the mean, $\mu_{i}$, representing the average likelihood of a given family to purchase a new car in the next year. It is a proportion between 0 and 1 - thus Bernoulli distributed. This model is a good candidate for use of a GLM.
+ 
+```{r q1part1, echo = FALSE}
+cars <- read.delim("/Users/Jennifer/Documents/stat587/cars.txt", sep=",")
+summary(cars)
+```
+
+Our observed average is 0.4242. Now we have to find estimates for $\beta_0$, $\beta_1$, and $\beta_2$.
+
+#### Part A
+Here are the maximum likelihood estimates for $\beta_{0}$, $\beta_{1}$, and $\beta_{2}$. These are fitted using a GLM - and the logit link function:
+
+$$ logit(x) = log(\frac{x}{1-x})$$ 
+
+```{r q1part2, echo=FALSE}
+mymodel = glm(Y~ X1+ X2, data=cars, binomial)
+summary(mymodel)
+```
+Our $\hat{\beta_0}$ estimate is -4.73931, $\hat{\beta_1}$ estimate is 0.06773, and $\hat{\beta_2}$ estimate is 0.59863.
+
+The probability that a given observation equals 1 is estimated through the logit function, and is written:
+$$\hat{\pi_i} = \frac{e^{\beta_0 + \beta_1x_{1i} + \beta_2x_{2i}}}}{1 + e^{\beta_0 + \beta_1x_1i + \beta_2x_2i}$$
+
+#### Part B
+
+The values of $e^{\beta_1}$ and $e^{\beta_2}$ are:
+
+```{r q1part3, echo=FALSE}
+print(exp(mymodel$coefficients[2]))
+print(exp(mymodel$coefficients[3]))
+```
+Our $e^{\beta_1}$ of 1.070079 indicates that if the value of $x_1$, or family income, increases by 1,000 dollars the odds of buying a new car increase by 7%. Likewise, our $e^{\beta_2}$ of 1.819627 indicates that if the value of $x_2$, or the age of the family vehicle in years, increases by one year the odds of buying a new car increase by 82%.
+
+#### Part C
+
+Now we want to estimate the probability of buying a new car for a family with an income of 50 thousand dollars and whose oldest car is 3 years old.
+
+```{r q1part4, echo=FALSE, message=FALSE, warnings=FALSE}
+
+etobetas <- predict.glm(object = mymodel, data.frame(X1=c(50), X2=c(3)))
+
+print(exp(etobetas)/(1+exp(etobetas)))
+```
+
+
+Our estimated $\hat{\pi_i}$ is $\frac{e^{0.443}}{1+e^{0.443}}$, or 60.9% likelihood of the family buying a new car.
+
+### Problem 2
+
+Our data is for bald eagles and their foraging behavior. Our outcome is the success of a bird's attempt based on the pirating bird's size and age, as well as the feeding eagle's size. Those three predictors are categorical, with only two categories each. The outcome is binomial. We still use the logit link. L=1, S=0, A=1, and I=0.
+
+```{r q2part1, echo=FALSE}
+
+counts <-c(17, 7, 29, 0, 17, 10, 20, 0, 1, 11, 15, 1, 0, 28, 1, 3)
+p <- c(1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0)
+a <- c(1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0)
+v <- c(1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0)
+success <- c(1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0)
+birds <- data.frame(p,a,v,success)
+birds <- birds[rep(seq_len(16), counts),]
+row.names(birds) <- c(1:160)
+
+```
+
+
+We have an outcome between 0 and 1, with three categorical predictors. We have 160 observations. We want to predict the success of a foraging attempt by looking at a bird's age (A) and size (P), in addition to the size of the bird it is poaching from (V). We want to predict the probability of success for a bird's attempt. This code summarizes the main effects and the saturated models
+
+```{r q2part2, echo=FALSE}
+
+birds.glm <- glm(success~ p+a+v, data=birds, family=binomial)
+
+summary(birds.glm)
+
+birdssaturated.glm <- glm(success~ p+a+v + (p*a) + (p*v) + (a*v) + (p*a*v), data=birds, family=binomial)
+
+summary(birdssaturated.glm)
+```
+
+The saturated model only calculates one input as significant, but the main effects model shows all effects to be significant at $\alpha = 0.05$. From the signs of the coefficients, the likelihood of success decreases with increasing size of feeding eagle, but increases with increasing size and age of pirating eagle. What about full vs. intercept model? Can Pearson's Chi Square test be used?
+
+```{r q2part3, echo=FALSE}
+
+birdsreduced.glm <- glm(success~ 1, data=birds, family=binomial)
+anova(birds.glm, birdsreduced.glm, test ="Chisq")
+```
+
+Our table shows the difference between the deviance of the full model and the deviance of the intercept model (121.31). With 3 degrees of freedom, the Chi Square value is significant at $\alpha = 0.05$.
+
+Keeping all three explanatory variables in the formula gives this for predicting the probability of success:
+$$\hat{\pi_i} = \frac{e^{0.6205 + 4.5570x_{1i} + 1.0973x_{2i}  -4.933x_{3i}}}{1+e^{0.6205 + 4.5570x_{1i} + 1.0973x_{2i}  -4.933x_{3i}}$$
+
+
+### Problem 3
+
+The data is taken from 1981 to 1988 and has n=661 observations. Each birth is categorized by whether or not the mother had a mild health problem during pregnancy, a gynaecological problem during pregnancy, smoked during pregnancy, and if the birth weight was less than 1250g.
+
+```{r q3part1, echo = FALSE}
+
+y <- c(10, 7, 25, 5, 12, 22, 15, 19, 18, 10, 12, 12, 42, 202, 45, 205)
+
+row <- c(1:16)
+cardiac <-c(1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0)
+comps = rep(c(1,1,1,1,0,0,0,0),2)
+smoking = rep(c(1,1,0,0),4)
+bw <- rep(c(1,0),8)
+total <-data.frame(row, cardiac, comps, smoking, bw, row.names = 'row')
+newtotal <- total[rep(seq_len(16), y),]
+row.names(newtotal) <- c(1:661)
+```
+
+Here we use logistic regression. Our outcome of interest is whether or not a baby was born underweight, or less than 1050g.
+
+```{r q3part2, echo=FALSE}
+birthweight.glm <- glm(bw~cardiac+smoking+comps,data=newtotal, family='binomial')
+summary(birthweight.glm)
+print(birthweight.glm$coefficients)
+```
+
+The $\hat{\beta_i}$ values for intercept and the three explanatory variables are given from the logistic regresison fit. They give insight to odds ratio and how much the chance of a baby to be born underweight increases or decreases if his or her mother smkoked or had a cardiac or other health issue during pregnancy. If the mother smokes at least 1 cigarette daily, the baby's odds of low birthweight are decreased by close to $e^{-0.11}$ or only 0.896 times more likely. If the mother had a cardiac issue, the odds of low birthweight increase by $e^{1.0185078}$, or 2.767 times more likely. FInally if the mother had a gynecological issue, the odds of low birthweight increase by $e^{1.7282082}$, or 5.63 times more likely. Running an ANOVA test:
+```{r}
+anova(birthweight.glm, test='Chisq')
+```
+
+We see here that cardiac and complications are significant, but smoking is not, in determining likelihood of a baby to be born underweight.
+
+### Problem 4
+
+#### Part A
+
+Here the data from the first question is partitioned into three groups, equal in size.
+
+```{r q4part1, echo=FALSE}
+cars$fitted <- fitted(mymodel)
+cars <- cars[order(cars$fitted),]
+```
+
+```{r q4part2, echo = FALSE}
+
+cars1 <- cars[1:11,]
+cars2 <- cars[12:22,]
+cars3 <- cars[23:33,]
+print(cat('Group 1 proportion: ', (sum(cars1$Y))/11))
+print(cat('Group 2 proportion: ', (sum(cars2$Y)/11)))
+print(cat('Group 3 proportion: ', (sum(cars3$Y)/11)))
+print((max(cars1$fitted)+min(cars1$fitted))/2)
+print((max(cars2$fitted)+min(cars2$fitted))/2)
+print((max(cars3$fitted)+min(cars3$fitted))/2)
+```
+
+```{r}
+samplep <-c ((sum(cars1$Y)/11), (sum(cars2$Y)/11), (sum(cars3$Y)/11))
+midpoints <- c((max(cars1$fitted)+min(cars1$fitted))/2, (max(cars2$fitted)+min(cars2$fitted))/2, (max(cars3$fitted)+min(cars3$fitted))/2)
+
+plot(midpoints, samplep)
+text(midpoints, samplep, labels(c('Group1', 'Group2', 'Group3')))
+```
+Here we plot the midpoints of $\pi$ against the sample proportions of each group. We have a small number of groups/points, and so far a monotonic sigmoidal shape isn't forming here.
+
+#### Part B
+
+Plotting the deviance residuals using an index plot
+
+```{r}
+ plot(c(1:33), residuals(mymodel, type='deviance'))
+lines(residuals(mymodel, type='deviance'))
+```
+
+Here the deviances look more in tune with a good model. Nothing that looks like an obvious outlier.
+
+#### Part C
+
+Plotting a half-normal plot
+```{r}
+library(hnp)
+hnp(mymodel, sim=90, resid.type='deviance', halfnormal=TRUE)
+
+```
+This half normal plot shows good fit with all points within bootstrapped envelope.
+

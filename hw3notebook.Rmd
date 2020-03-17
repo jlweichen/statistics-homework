@@ -1,0 +1,296 @@
+---
+title: "Homework 3 Stat 587"
+author: "Jennifer Weichenrieder"
+date: "5/1/2019"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+### Problem 1
+
+#### Part A.
+We want to generate 200 replicas of $x \sim uniform [-3.14, 3.14]$ and 200 normal distributed errors with $\mu$ = 0 and $\sigma$ = 1/8.
+
+```{r echo=FALSE}
+set.seed(34)
+uniform <- function(){
+  X <- runif(n=1, min=-3.14, max=3.14)
+  return(X)
+}
+normal <- function(){
+  X <- rnorm(n=1, mean = 0, sd=0.125)
+  return(X)
+}
+# two vectors - one of 200 uniform observations
+# and another of 200 Normal error observations
+obs <- replicate(n=200, expr = uniform())
+errs <- replicate(n=200, expr = normal())
+# calculating sin(x)
+sinobs <- sapply(obs, sin)
+# adding error/residual
+noisy <- sinobs + errs
+```
+Our formula is $y = sin(x)+e$ where x is a uniformly distributed observation, and e is the normally distributed error. We want to non-parametrically fit the data using multiple smoothing techniques. Options include kernel smoothing, local polynomial, LOWESS, and spline.
+```{r echo=FALSE}
+# for kernel estimation:
+# choice of bandwidth = n^-1/5
+# n=200, h = 0.35
+par(mfrow=c(1,3))
+huh <- ksmooth(x = obs, y = noisy, bandwidth = 0.35)
+plot(noisy~obs, col = "grey", pch=16)
+title("Kernel Estimation", cex.main = 0.8)
+lines(x = huh$x, y = huh$y)
+# for local polynomial
+library("KernSmooth")
+huh2 <- locpoly(x = obs, y = noisy, bandwidth = 0.35)
+plot(noisy~obs, col = "grey", pch=16)
+title("Local Polynomial", cex.main = 0.8)
+lines(y = huh2$y, x = huh2$x)
+# for LOWESS
+huh3 <- lowess(x = obs, y = noisy)
+plot(noisy~obs, col = "grey", pch=16)
+title("LOWESS", cex.main = 0.8)
+lines(y = huh3$y, x = huh3$x)
+```
+```{r echo=FALSE}
+# smoothing spline
+# first try a small lambda
+par(mfrow=c(1,3))
+huh4 <- smooth.spline(x=obs, y=noisy, spar=0.2)
+plot(noisy~obs, col="grey", pch=16)
+title("Smoothing Spline, Lambda = 0.2", cex.main = 0.8)
+lines(y = huh4$y, x = huh4$x, col = "black")
+# now a larger lambda
+huh5 <- smooth.spline(x=obs, y=noisy, spar = 0.95)
+plot(noisy~obs, col="grey", pch=16)
+title("Smoothing Spline, Lambda = 0.95", cex.main = 0.8)
+lines(y = huh5$y, x = huh5$x, col = "black")
+# now the lambda chosen by default
+huh6 <- smooth.spline(x=obs, y=noisy)
+plot(noisy~obs, col = "grey", pch=16)
+title("Smoothing Spline, Lambda = Default", cex.main = 0.8)
+lines(y = huh6$y, x = huh6$x, col="black")
+```
+
+#### Part B.
+Repeating the above, switching the $\sigma$ value to 1/2
+
+```{r echo=FALSE}
+uniform <- function(){
+  X <- runif(n=1, min=-3.14, max=3.14)
+  return(X)
+}
+normal <- function(){
+  X <- rnorm(n=1, mean = 100, sd=0.5)
+  return(X)
+}
+# two vectors - one of 200 uniform observations
+# and another of 200 Normal observations
+obs <- replicate(n=200, expr = uniform())
+errs <- replicate(n=200, expr = normal())
+sinobs <- sapply(obs, sin)
+noisy <- sinobs + errs
+plot(y = noisy, x = obs)
+```
+
+Obviously, our simulated data does not make such an obvious sinusoidal curve.
+Performing the estimation to smooth, using the same methods as before.
+
+```{r echo=FALSE}
+# for kernel estimation:
+# choice of bandwidth = n^-1/5
+# n=200, h = 0.35
+par(mfrow=c(1,3))
+huh <- ksmooth(x = obs, y = noisy, bandwidth = 0.35)
+plot(noisy~obs, col = "grey", pch=16)
+title("Kernel Estimation", cex.main = 0.8)
+lines(x = huh$x, y = huh$y)
+# for local polynomial
+library("KernSmooth")
+huh2 <- locpoly(x = obs, y = noisy, bandwidth = 0.35)
+plot(noisy~obs, col = "grey", pch=16)
+title("Local Polynomial", cex.main = 0.8)
+lines(y = huh2$y, x = huh2$x)
+# for LOWESS
+huh3 <- lowess(x = obs, y = noisy)
+plot(noisy~obs, col = "grey", pch=16)
+title("LOWESS", cex.main = 0.8)
+lines(y = huh3$y, x = huh3$x)
+```
+```{r echo=FALSE}
+par(mfrow=c(1,3))
+huh4 <- smooth.spline(x=obs, y=noisy, spar=0.2)
+plot(noisy~obs, col="grey", pch=16)
+title("Smoothing Spline, Lambda = 0.2", cex.main = 0.8)
+lines(y = huh4$y, x = huh4$x, col = "black")
+# now a larger lambda
+huh5 <- smooth.spline(x=obs, y=noisy, spar = 0.95)
+plot(noisy~obs, col="grey", pch=16)
+title("Smoothing Spline, Lambda = 0.95", cex.main = 0.8)
+lines(y = huh5$y, x = huh5$x, col = "black")
+# now the lambda chosen by default
+huh6 <- smooth.spline(x=obs, y=noisy)
+plot(noisy~obs, col = "grey", pch=16)
+title("Smoothing Spline, Lambda = Default", cex.main = 0.8)
+lines(y = huh6$y, x = huh6$x, col="black")
+```
+
+Overall, the output shows the importance of tuning parameter for spline fitting, where a value closer to 0 makes a jagged fit, and a value closer to 1 is smoother. It also shows local polynomial and LOWESS to give smoother output than kernel fitting, at least when using default R settings. Judging by the graphs, local polynomial and splines are the best fitting methods for this model and data.
+
+### Problem 2
+
+#### Part A
+
+Our model is $y = 3 + 5x_{i,1} + 4x_{i,2} - 2x_{i,1}x_{i,2}^2 + \epsilon_i$, with $\epsilon_i + \frac{\alpha}{\lambda} \sim \Gamma(\lambda, \alpha)$. We take $\alpha = 2$ and $\lambda = \sqrt{2}$, hence $\sigma = \frac{\alpha}{\lambda^2} = 1$. From the model forumla our beta vector $\vec{\beta}$ can be defined as [3,5,4,2]. This is a saturated model with two x inputs. We want to simulate observations in $\vec{x_1}$ = [-2 -1 0 1 2] and $\vec{x_2}$ = [-3 -2 0 2 3]. Then we want to see how good our estimated beta vector, $\hat{\vec{\beta}}$, compares.
+```{r echo=FALSE}
+set.seed(32)
+gamma <- function(){
+  X <- rgamma(n=1, shape = 2, rate=sqrt(2))
+  return(X)
+}
+x1 <- c(-2, -1, 0, 1, 2)
+x2 <- c(-3, -2, 1, 2, 3)
+beta <- c(3, 5, 4, -2)
+why <- beta[1] + beta[2]*x1 + beta[3]*x2 + beta[4]*x1*(x2^2)
+
+# a vector of errors
+# i=5 so we only generate 5 error terms
+errs <- replicate(n=5, expr = gamma())
+errs <- sapply(errs, function(x) (x-(2/sqrt(2))))
+# calculating Y values
+whyerr <- why + errs
+print(paste('Simulated Y value: ', as.character(whyerr)))
+
+```
+
+#### Part B
+
+Using the least squares method to estimate $\hat{\vec{\beta}}$
+```{r echo=FALSE}
+exes <- cbind(c(1,1,1,1,1),c(-2,-1,0,1,2),c(-3,-2,1,2,3),c(-18, -4, 0, 4, 18))
+trans <- t(exes)%*%exes
+betas <- solve(trans)%*%t(exes)%*%why
+betaserr <- solve(trans)%*%t(exes)%*%whyerr
+# least squares using the estimated error-free data
+# gives our initial beta values - because that's the model
+# used to generate those y values
+print(lsfit(x = exes[,2:4], y=why)$coefficients)
+# now using least squares to give beta hat values
+# these y values include the error
+print(lsfit(x = exes[,2:4], y=whyerr)$coefficients)
+# can also write print(lm(whyerr~exes[,2:4]))
+```
+
+With the simulated data, new values for $\hat{\vec{\beta}}$ are $\beta_0$ = 3.089, $\beta_1$ = 7.985, $\beta_2$ = 2.85, and $\beta_{12}$ = -2.15.
+
+#### Part C
+I am choosing x1 = [-4, -3, 0, 2, 5, 6, 7, 8, 9, 10] and x2 = [-3, -2, 0, 2, 4, -3, -1, 0, 1, 5]
+```{r echo=FALSE}
+set.seed(32)
+gamma <- function(){
+  X <- rgamma(n=1, shape = 2, rate=sqrt(2))
+  return(X)
+}
+x1 <- c(-4, -3, 0, 2, 5,6,7,8,9, 10)
+x2 <- c(-3, -2, 0,2,4,-3,-1, 0, 1, 5)
+beta <- c(3, 5, 4, -2)
+why <- beta[1] + beta[2]*x1 + beta[3]*x2 + beta[4]*x1*(x2^2)
+
+# a vector of errors
+# i=10 so we only generate 10 error terms
+errs <- replicate(n=10, expr = gamma())
+errs <- sapply(errs, function(x) (x-(2/sqrt(2))))
+# calculating Y values
+whyerr <- why + errs
+print(paste('Simulated Y value: ', as.character(whyerr)))
+
+exes <- cbind(c(1,1,1,1,1,1,1,1,1,1),x1,x2,(x1+(x2^2)))
+print(lsfit(x = exes[,2:4], y=whyerr)$coefficients)
+```
+This new estimation gives $\hat{\beta_0} = 75.97$, $\hat{\beta_1} = 8.03$, $\hat{\beta_2} = -4.25$, and $\hat{\beta_{12}} = -14.21$.
+
+#### Part D
+
+Bootstrapping residuals to find confidence interval for the expected response value for covariate values $x_1 = 1$ and $x_2 = 1$. I will choose N = 1000 bootstrapped data sets.
+```{r echo=FALSE}
+# resampling the 10 residuals 1000 times
+resamples <- lapply(1:1000, function(x) sample(errs, replace=TRUE))
+# bootstrapped Y estimates with resampled residuals
+newy <- lapply(resamples, function(x) x+why)
+# fitting each of these sets of Y to new betas
+newbeta <- lapply(newy, function(i) lsfit(x = exes[,2:4], y=i)$coefficients)
+# confidence interval for betas
+# we are interested in output when x1=1 and x2=1
+# fitting each model in newbeta to x1=1 and x2=1
+newones <- sapply(newbeta, function(i) i%*%c(1,1,1,1))
+newones <- sort(newones)
+# use of order statistic
+# lower CI is (25)
+# upper CI is (975)
+print(paste("Lower CI Value 95%:", newones[25]))
+print(paste("Upper CI Value 95%:", newones[975]))
+print(paste("Estimated value: ", lsfit(x = exes[,2:4],y=whyerr)$coefficients%*%c(1,1,1,1)))
+```
+
+### Problem 3
+
+Monte Carlo simulation to integrate $\int_{-5}^{5}(x^3-x^2)e^{-x^2/2}dx$.
+N = 10, 100, or 1000 samples from a uniform distribution. For each value of N we perform the experiment 500 times, compute variance, and visualize the relationship between the variance and N.
+```{r echo=FALSE}
+set.seed(43)
+
+# writing the function we wish to first sample 500 times from uniform[-5, 5]
+uniform <- function(){
+  X <- runif(n=1, min=-5, max=5)
+  return(X)
+}
+funct <- function(x){
+  return(((x^3)-(x^2))*exp(-(x^2/2)))
+}
+
+# picking n times from uniform[-5, 5]
+
+integrator <- function(num){
+  x <- replicate(n=num, expr = uniform())
+  y <- sapply(x, funct)
+  huh <- as.data.frame(cbind(x, y))
+  return(huh)
+}
+# repeat 500 times
+
+n10 <- lapply(rep.int(10,500), integrator)
+plot(funct,  main="Function to integrate", xlim=c(-5, 5), ylim=c(-2, 2))
+plot(n10[[5]], main = "N=10", xlim=c(-5, 5), ylim=c(-2, 2), pch=16, cex=0.5)
+points(n10[[4]], xlim=c(-5, 5), ylim=c(-2, 2), col="hotpink", pch=16, cex=0.5)
+points(n10[[44]], xlim=c(-5, 5), ylim=c(-2, 2), col="green", pch=16, cex=0.5)
+n100 <- lapply(rep.int(100,500), integrator)
+plot(n100[[5]], main="N-100", xlim=c(-5, 5), ylim=c(-2, 2), pch=16, cex=0.3)
+points(n100[[4]], xlim=c(-5, 5), ylim=c(-2, 2), col="hotpink", pch=16, cex=0.3)
+points(n100[[44]], xlim=c(-5, 5), ylim=c(-2, 2), col="green", pch=16, cex=0.3)
+n1000 <- lapply(rep.int(1000,500), integrator)
+plot(n1000[[5]], main = "N=1000", xlim=c(-5, 5), ylim=c(-2, 2), pch=16, cex=0.3)
+points(n1000[[4]], xlim=c(-5, 5), ylim=c(-2, 2), col="hotpink", pch=16, cex=0.3)
+points(n1000[[44]], xlim=c(-5, 5), ylim=c(-2, 2), col="green", pch=16, cex=0.3)
+```
+
+It is quite noticeable that as N increases, the points better resemble the actual function.
+Now to calculate the integral, and compare variances across models
+
+```{r echo=FALSE}
+# first, the mean value of y for each N (done 500 times)
+# then multiply by range (5- (-5))=10
+mean10 <- lapply(n10, function(i) mean(i$y)*10)
+mean100 <- lapply(n100, function(i) mean(i$y)*10)
+mean1000 <- lapply(n1000, function(i) mean(i$y)*10)
+
+print(paste('R Numeric Integral: ', integrate(funct, upper=5, lower=-5)[1]))
+print(paste('MC Mean Estimate for N=10: ', mean(unlist(mean10))))
+print(paste('MC Var Estimate for N=10: ', var(unlist(mean10))))
+print(paste('MC Mean Estimate for N=100: ', mean(unlist(mean100))))
+print(paste('MC Var Estimate for N=100: ', var(unlist(mean100))))
+print(paste('MC Mean Estimate for N=1000: ', mean(unlist(mean1000))))
+print(paste('MC Var Estimate for N=1000: ', var(unlist(mean1000))))
+```
+The value given by N=1000 is closest to the R numerically integrated value, and also has the lowest computed variance. 
